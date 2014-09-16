@@ -8,7 +8,7 @@ var ballRadius = 10
 
 var paddleThickness = 3
 var paddleRadius = 200
-var paddleSize = 50
+var paddleSize = 0.05
 
 //Below variables are squared(or not rooted) for optimized distance calculation
 var ball_reflect_position = Math.pow(paddleRadius-ballRadius-paddleThickness/2,2)
@@ -81,11 +81,11 @@ if (Meteor.isClient) {
 	requestAnimationFrame(animFunc)
 	
 	function setPaddlePos(paddle,pos) {
-		paddle.setAttributeNS(null,"x1",Math.sin(pos*2*Math.PI-paddleSize/2)*paddleRadius)
-		paddle.setAttributeNS(null,"y1",Math.cos(pos*2*Math.PI-paddleSize/2)*paddleRadius)
+		paddle.setAttributeNS(null,"x1",Math.sin((pos-paddleSize/2)*2*Math.PI)*paddleRadius)
+		paddle.setAttributeNS(null,"y1",Math.cos((pos-paddleSize/2)*2*Math.PI)*paddleRadius)
 			
-		paddle.setAttributeNS(null,"x2",Math.sin(pos*2*Math.PI+paddleSize/2)*paddleRadius)
-		paddle.setAttributeNS(null,"y2",Math.cos(pos*2*Math.PI+paddleSize/2)*paddleRadius)
+		paddle.setAttributeNS(null,"x2",Math.sin((pos+paddleSize/2)*2*Math.PI)*paddleRadius)
+		paddle.setAttributeNS(null,"y2",Math.cos((pos+paddleSize/2)*2*Math.PI)*paddleRadius)
 	}
 	
 	
@@ -234,7 +234,7 @@ if (Meteor.isServer) {
 	
 	function isPaddleAtPos(pos) {
 		return Paddles.filter(function(entry) {
-			return (Math.abs(entry.pos-pos)<0.05)
+			return (Math.abs(entry.pos-pos)<paddleSize/2)
 		}).length>0
 	}
 	
