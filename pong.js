@@ -133,6 +133,13 @@ if (Meteor.isClient) {
 		upsertPaddle(this.subscriptionId,message)
 	})
 	
+	Stream.on("removePaddle",function(message) {
+		var paddle = document.getElementById(message)
+		if (paddle) {
+			paddle.parentNode.removeChild(paddle)
+		}
+	})
+	
 	Stream.on("newBall",function(message) {
 		insertBall(message.id,message.vel)
 	})
@@ -180,6 +187,7 @@ if (Meteor.isServer) {
 	var Balls = []
 	var Paddles = []
 
+	//Debug method to add ball
 	Meteor.methods({
 		"addball" : function() {
 			var pos = Math.random(-Math.PI/2,Math.PI/2)
@@ -199,6 +207,7 @@ if (Meteor.isServer) {
 		}
 	})
 	
+	//Second argument is false to disable caching
 	Stream.permissions.write(function(eventname){
 		return true
 	},false)
@@ -236,7 +245,7 @@ if (Meteor.isServer) {
 		var dt = Date.now() - lastUpdate
 		lastUpdate = Date.now()
 		
-		
+		//Move ever ball, check for reflection
 		Balls.forEach(function(entry){
 			entry.pos.x=entry.pos.x+entry.vel.x*dt
 			entry.pos.y=entry.pos.y+entry.vel.y*dt
@@ -255,12 +264,20 @@ if (Meteor.isServer) {
 			}
 		})
 		
+		//Remove the balls we scheduled to remove in the foreach
 		Balls = Balls.filter(function(entry){return (!(
 			entry.scheduledForRemove === true 
 		))}) 
 		
-		Paddles = Paddles.filter(function(entry){return (!(entry.lastUpdate + 10000 < Date.now()))})
-		console.log(Paddles.length)
+		//Remove old paddles
+		Paddles = Paddles.filter(function(entry){
+			if (entry.lastUpdate + 10000 < Date.now()) {
+					Stream.emit("removePaddle",entry.id)
+					return false
+				}
+				return true
+		})
+		
 		//Is this a decent way to remove items from arrays?
 	},15)
 	
