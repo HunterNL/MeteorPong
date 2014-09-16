@@ -1,5 +1,20 @@
 Stream = new Meteor.Stream("pongData")
 
+var courtX = 800
+var courtY = 800
+
+var ballSpeed = 0.2
+var ballRadius = 10
+
+var paddleThickness = 3
+var paddleRadius = 200
+var paddleSize = 50
+
+//Below variables are squared(or not rooted) for optimized distance calculation
+var ball_reflect_position = Math.pow(paddleRadius-ballRadius-paddleThickness/2,2)
+var ball_remove_postition = Math.pow(courtX/2,2)+Math.pow(courtY/2,2) 
+
+
 var util = {
 	clamp : function(a,min,max) {
 		return Math.min(Math.max(a,min),max)
@@ -22,40 +37,44 @@ var util = {
 
 
 function physicsTick(dt) {
-	/*
-	Paddles.find().forEach(function(entry){
-		Paddles.update(entry._id,{$set: {pos:util.approach(entry.pos,entry.targetPos,0.0002*dt)}})
-	})
+	var balls = document.getElementsByTagName("circle")
+	if (!balls) {return}
 	
-	Balls.find().forEach(function(entry) {
-		Balls.update(entry._id, {$inc: {
-			x : entry.x_vel * dt,
-			y : entry.y_vel * dt
-		}})
+	for(var i = 0;i <balls.length;i++) {
+		var entry = balls[i]
 		
-		if ((entry.x^2 + entry.y^2) > (400^2)) {
-			console.log(entry.x,entry.y)
-			Balls.remove(entry._id)
+		//if(entry.dataset.outofbounds) {continue}
+		if(typeof entry.dataset.vel_x == "undefined" || typeof entry.dataset.vel_y == "undefined") {continue}
+		
+		var ballX = parseFloat(entry.getAttributeNS(null,"cx"),10)
+		var ballY = parseFloat(entry.getAttributeNS(null,"cy"),10)
+		
+		entry.setAttributeNS(null,"cx",ballX+parseFloat(entry.dataset.vel_x,10)*dt)
+		entry.setAttributeNS(null,"cy",ballY+parseFloat(entry.dataset.vel_y,10)*dt)
+		
+		if(Math.pow(ballX,2)+Math.pow(ballY,2)>ball_remove_postition) {
+			entry.parentNode.removeChild(entry)
 		}
-	})
-	*/
-	
+		
+	}
 }
 
 
 if (Meteor.isClient) {
-	Paddles = []
-	Balls = []
 	
-	var paddleRadius = 200
-	var paddleSize = 50
-	/*
-	Paddles.push({
-		id: "self",
-		pos: 0,
-		lastUpdate : Date.now()
-	})
-	*/
+	
+
+	var lastStamp = null
+	
+	function animFunc(timestamp) {
+		if (lastStamp!=null) {
+			physicsTick(timestamp-lastStamp)
+		}
+		lastStamp = timestamp
+		
+		requestAnimationFrame(animFunc)
+	}
+	requestAnimationFrame(animFunc)
 	
 	function setPaddlePos(paddle,pos) {
 		paddle.setAttributeNS(null,"x1",Math.sin(pos*2*Math.PI-paddleSize/2)*paddleRadius)
@@ -65,155 +84,116 @@ if (Meteor.isClient) {
 		paddle.setAttributeNS(null,"y2",Math.cos(pos*2*Math.PI+paddleSize/2)*paddleRadius)
 	}
 	
+	//function upsertBall(id,pos)
+	
 	function upsertPaddle(id,pos) {
 		var paddle = document.getElementById(id)
 		if (!paddle) {
 			paddle = document.createElementNS("http://www.w3.org/2000/svg", "line")
 			
-			paddle.setAttributeNS(null,"strike-width",3)
+			paddle.setAttributeNS(null,"strike-width",paddleThickness)
 			paddle.setAttributeNS(null,"stroke","white")
-		
-			paddle.stroke = "white"
+			
 			paddle.id = id
 			
 			document.getElementsByTagName("svg")[0].appendChild(paddle)
 		}
 		
-		console.log("upsertpos",pos)
 		setPaddlePos(paddle,pos)
+	}
+	
+	function insertBall(id,vel) {
+		var ball = document.createElementNS("http://www.w3.org/2000/svg", "circle")
+			
+		//paddle.setAttributeNS(null,"strike-width",3)
+		ball.setAttributeNS(null,"fill","white")
+		ball.setAttributeNS(null,"cx",0)
+		ball.setAttributeNS(null,"cy",0)
+		ball.setAttributeNS(null,"r",ballRadius)
+		
+		ball.dataset.vel_x = vel.x
+		ball.dataset.vel_y = vel.y
+		
+		ball.id = id
+		document.getElementsByTagName("svg")[0].appendChild(ball)
 	}
 	
 	
 	
 	function updateSelfPos(pos) {
 		upsertPaddle("self_paddle",pos)
-		
-		
-		
-		/*
-		Paddles.forEach(function(entry){
-			if (entry.id == "self_paddle") {
-				entry.pos = pos
-			}
-		})
-		*/
 	}
 	
-	//Stream.emit("requestPadddle",null)
-	Stream.on("updatePos",function(message) {
+
+	Stream.on("updatePaddlePos",function(message) {
 		upsertPaddle(this.subscriptionId,message)
-		/*
-		var updated = false
-		
-		Paddles.forEach(function(entry){
-			if (entry.id == this.subscriptionId) {
-				entry.pos = message
-				entry.lastUpdate = Date.now()
-				updated = true
-			}
-		},this)
-		
-		if(updated) {return}
-		
-		Paddles.push({
-			id : this.subscriptionId,
-			pos : message,
-			lastUpdate : Date.now()
-		})
-		*/
 	})
 	
+	Stream.on("newBall",function(message) {
+		insertBall(message.id,message.vel)
+	})
 	
-	
-	//window.requestAnimationFrame(physicsTick)
-	
-	Template.court.balls = function(){
-		return Balls
-	}
-	
-	Template.court.paddles = function(){
-		return Paddles
-	}
-	
-	Template.court.pos = function(){
-	/*
-		var paddle = Paddles.findOne(Session.get("paddle"))
-		if (paddle) {
-			return paddle.pos
-		} else {
-			return "No paddle"
-		}*/
-	}
-	
-	Template.court.tgt = function(){
-	/*
-		var paddle = Paddles.findOne(Session.get("paddle"))
-		if (paddle) {
-			return paddle.targetPos
-		} else {
-			return "No Paddle"
+	Stream.on("updateBall",function(message) {
+		console.log("received ball update ",message)
+		var ball = document.getElementById(message.id)
+		if(ball) {
+			if(message.pos) {
+				ball.setAttributeNS(null,"cx",message.pos.x)
+				ball.setAttributeNS(null,"cy",message.pos.y)
+			}
+			
+			if(message.vel) {
+				ball.dataset.vel_x=message.vel.x
+				ball.dataset.vel_y=message.vel.y
+			}
+			
+			if(message.outOfBounds) {
+				ball.dataset.outofbounds = true
+				ball.setAttributeNS(null,"fill","red")
+			}
 		}
-		*/
-	}
 	
-	Template.court.ownPaddle = function() {
-		return ownPaddle
-	}
+	})
 	
 	Template.court.events({
-		"mousemove svg" : function(e,tmp) {
-			var x = e.offsetX-400
-			var y = e.offsetY-400
-			var pos = Math.atan2(y,x)/-2/Math.PI+0.25
-			/*
-			Paddles.update(Session.get("paddle"),{$set: {
-				targetPos:(Math.atan2(y,x)/-2/Math.PI+0.25),
-				last_update: Date.now()
-				
-			}}) //
-			*/
-			Stream.emit("updatePos",pos)
-			console.log("event pos",pos)
+		"mousemove svg, tap svg" : function(e,tmp) {
+			var x = e.offsetX-courtX/2
+			var y = e.offsetY-courtY/2
+			var pos = Math.atan2(y,x)/-2/Math.PI+0.25 //This seems bad :(
+
+			Stream.emit("updatePaddlePos",pos)
 			updateSelfPos(pos)
 		},
 		
 		"click svg" : function(e,tmp) {
-			var dir = Math.random(-Math.PI/2,Math.PI/2)
-			Balls.insert({
-				x:0,
-				y:0,
-				x_vel: Math.sin(dir),
-				y_vel: Math.cos(dir)
-			})
+			Meteor.call("addball")
 		}
 	})
-	
-	Template.ball.attr = function(){
-		return {
-			cx : this.x,
-			cy : this.y,
-			r : 10,
-			style: "fill:white"
-		}
-	}
-	
-	Template.paddle.attr = function(){
-		console.log(this)
-		return {
-			x1: Math.sin(this.pos*2*Math.PI-paddleSize/2)*paddleRadius,
-			y1: Math.cos(this.pos*2*Math.PI-paddleSize/2)*paddleRadius,
-			
-			x2: Math.sin(this.pos*2*Math.PI+paddleSize/2)*paddleRadius,
-			y2: Math.cos(this.pos*2*Math.PI+paddleSize/2)*paddleRadius,
-			
-			stroke : "white",
-			"stroke-width" : 2
-		}
-	}
-	
 }
 
 if (Meteor.isServer) {
+	
+	var Balls = []
+	var Paddles = []
+
+	Meteor.methods({
+		"addball" : function() {
+			var pos = Math.random(-Math.PI/2,Math.PI/2)
+			var ball = {
+				id: Random.id(),
+				vel : {
+					x : Math.sin(pos) * ballSpeed,
+					y : Math.cos(pos) * ballSpeed
+				}
+			}
+			Stream.emit("newBall",ball)
+			ball.pos={
+				x: 0,
+				y: 0
+			}
+			Balls.push(ball)
+		}
+	})
 	
 	Stream.permissions.write(function(eventname){
 		return true
@@ -223,26 +203,53 @@ if (Meteor.isServer) {
 		return true
 	},false)
 	
-	/*
+	Stream.on("updatePaddlePos",function(message) {
+		var updated = false;
+		Paddles.forEach(function(entry) {
+			if (entry.id == this.subscriptionId) {
+				entry.pos = message
+			}
+		},this)
+		
+		if(updated) {return}
+		
+		Paddles.push({id: this.subscriptionId, pos: message})
+		
+	})
+	
+	function isPaddleAtPos(pos) {
+		return Paddles.filter(function(entry) {
+			return (Math.abs(entry.pos-pos)<0.05)
+		}).length>0
+	}
+	
+	
 	//Physics
 	var lastUpdate = Date.now()
 	Meteor.setInterval(function() {
 		var dt = Date.now() - lastUpdate
 		lastUpdate = Date.now()
-		physicsTick(dt)
-	},15)
-	*/
-	
-	//Housekeeping
-	/*
-	Meteor.setInterval(function() {
-		Paddles.find().forEach(function(entry){
-			if ((!entry.last_update)||(entry.last_update + 10000 < Date.now())) {
-				console.log("removing paddle"+entry._id)
-				Paddles.remove(entry._id)
+		
+		
+		Balls.forEach(function(entry){
+			entry.pos.x=entry.pos.x+entry.vel.x*dt
+			entry.pos.y=entry.pos.y+entry.vel.y*dt
+			
+			
+			if (Math.pow(entry.pos.x,2)+Math.pow(entry.pos.y,2) >= ball_reflect_position) {
+				var pos = Math.atan2(entry.pos.y,entry.pos.x)/-2/Math.PI+0.25 //Oh no not again
+				if (isPaddleAtPos(pos)) {
+					entry.vel.x=-entry.vel.x
+					entry.vel.y=-entry.vel.y
+					Stream.emit("updateBall",entry)
+				} else {
+					entry.scheduledForRemove = true
+					Stream.emit("updateBall",{id:entry.id, outOfBounds : true})
+				}
 			}
 		})
-	},1000)
-	*/
-
+		
+		Balls = Balls.filter(function(entry){return (!(entry.scheduledForRemove===true))})
+	},15)
+	
 }
