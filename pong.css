@@ -1,0 +1,13 @@
+/* CSS declarations go here */
+body {
+	background-color:black;
+	color:white;
+}
+
+svg {
+	display:block;
+	border: 1px solid green;
+	width: 800px;
+	height: 800px;
+	margin: 0 auto;
+}
