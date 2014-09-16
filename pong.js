@@ -19,7 +19,9 @@ var util = {
 	clamp : function(a,min,max) {
 		return Math.min(Math.max(a,min),max)
 	},
-
+	
+	
+	//Todo make me "modulus aware"
 	approach : function(source,target,step,modulus) {
 		//if (%)
 		step = Math.abs(step)
@@ -36,36 +38,38 @@ var util = {
 }
 
 
-function physicsTick(dt) {
-	var balls = document.getElementsByTagName("circle")
-	if (!balls) {return}
-	
-	for(var i = 0;i <balls.length;i++) {
-		var entry = balls[i]
-		
-		//if(entry.dataset.outofbounds) {continue}
-		if(typeof entry.dataset.vel_x == "undefined" || typeof entry.dataset.vel_y == "undefined") {continue}
-		
-		var ballX = parseFloat(entry.getAttributeNS(null,"cx"),10)
-		var ballY = parseFloat(entry.getAttributeNS(null,"cy"),10)
-		
-		entry.setAttributeNS(null,"cx",ballX+parseFloat(entry.dataset.vel_x,10)*dt)
-		entry.setAttributeNS(null,"cy",ballY+parseFloat(entry.dataset.vel_y,10)*dt)
-		
-		if(Math.pow(ballX,2)+Math.pow(ballY,2)>ball_remove_postition) {
-			entry.parentNode.removeChild(entry)
-		}
-		
-	}
-}
 
 
 if (Meteor.isClient) {
 	
 	
-
-	var lastStamp = null
+	//Clientside physics sim
+	function physicsTick(dt) {
+		var balls = document.getElementsByTagName("circle")
+		if (!balls) {return}
 	
+		for(var i = 0;i <balls.length;i++) {
+			var entry = balls[i]
+			
+			//if(entry.dataset.outofbounds) {continue}
+			if(typeof entry.dataset.vel_x == "undefined" || typeof entry.dataset.vel_y == "undefined") {continue}
+			//Is it okay to store this stuff in the DOM?
+			
+			var ballX = parseFloat(entry.getAttributeNS(null,"cx"),10)
+			var ballY = parseFloat(entry.getAttributeNS(null,"cy"),10)
+			
+			entry.setAttributeNS(null,"cx",ballX+parseFloat(entry.dataset.vel_x,10)*dt)
+			entry.setAttributeNS(null,"cy",ballY+parseFloat(entry.dataset.vel_y,10)*dt)
+			
+			if(Math.pow(ballX,2)+Math.pow(ballY,2)>ball_remove_postition) {
+				entry.parentNode.removeChild(entry)
+			}
+		}
+	}
+	
+	
+	var lastStamp = null
+	//Wrapper to get physTick its deltatime
 	function animFunc(timestamp) {
 		if (lastStamp!=null) {
 			physicsTick(timestamp-lastStamp)
@@ -84,8 +88,8 @@ if (Meteor.isClient) {
 		paddle.setAttributeNS(null,"y2",Math.cos(pos*2*Math.PI+paddleSize/2)*paddleRadius)
 	}
 	
-	//function upsertBall(id,pos)
 	
+	//Update or insert a paddle
 	function upsertPaddle(id,pos) {
 		var paddle = document.getElementById(id)
 		if (!paddle) {
@@ -207,7 +211,9 @@ if (Meteor.isServer) {
 		var updated = false;
 		Paddles.forEach(function(entry) {
 			if (entry.id == this.subscriptionId) {
+				updated = true
 				entry.pos = message
+				entry.lastUpdate = Date.now()
 			}
 		},this)
 		
@@ -249,7 +255,13 @@ if (Meteor.isServer) {
 			}
 		})
 		
-		Balls = Balls.filter(function(entry){return (!(entry.scheduledForRemove===true))})
+		Balls = Balls.filter(function(entry){return (!(
+			entry.scheduledForRemove === true 
+		))}) 
+		
+		Paddles = Paddles.filter(function(entry){return (!(entry.lastUpdate + 10000 < Date.now()))})
+		console.log(Paddles.length)
+		//Is this a decent way to remove items from arrays?
 	},15)
 	
 }
