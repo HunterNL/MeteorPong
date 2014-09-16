@@ -4,6 +4,12 @@ body {
 	color:white;
 }
 
+h4 {
+	text-align:center;
+	display:block;
+	margin: 2px auto;
+}
+
 svg {
 	display:block;
 	border: 1px solid green;

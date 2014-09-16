@@ -176,7 +176,7 @@ if (Meteor.isClient) {
 			updateSelfPos(pos)
 		},
 		
-		"click svg" : function(e,tmp) {
+		"dblclick svg" : function(e,tmp) {
 			Meteor.call("addball")
 		}
 	})
