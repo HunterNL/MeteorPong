@@ -12,7 +12,7 @@ var paddleSize = 0.05
 
 //Below variables are squared(or not rooted) for optimized distance calculation
 var ball_reflect_position = Math.pow(paddleRadius-ballRadius-paddleThickness/2,2)
-var ball_remove_postition = Math.pow(courtX/2,2)+Math.pow(courtY/2,2) 
+var ball_remove_postition = Math.pow(courtX/2+ballRadius*2,2)+Math.pow(courtY/2+ballRadius*2,2) 
 
 
 var util = {
@@ -81,11 +81,11 @@ if (Meteor.isClient) {
 	requestAnimationFrame(animFunc)
 	
 	function setPaddlePos(paddle,pos) {
-		paddle.setAttributeNS(null,"x1",Math.sin((pos-paddleSize/2)*2*Math.PI)*paddleRadius)
-		paddle.setAttributeNS(null,"y1",Math.cos((pos-paddleSize/2)*2*Math.PI)*paddleRadius)
+		paddle.setAttributeNS(null,"x1",Math.cos((pos-paddleSize/2)*2*Math.PI)*paddleRadius)
+		paddle.setAttributeNS(null,"y1",-Math.sin((pos-paddleSize/2)*2*Math.PI)*paddleRadius)
 			
-		paddle.setAttributeNS(null,"x2",Math.sin((pos+paddleSize/2)*2*Math.PI)*paddleRadius)
-		paddle.setAttributeNS(null,"y2",Math.cos((pos+paddleSize/2)*2*Math.PI)*paddleRadius)
+		paddle.setAttributeNS(null,"x2",Math.cos((pos+paddleSize/2)*2*Math.PI)*paddleRadius)
+		paddle.setAttributeNS(null,"y2",-Math.sin((pos+paddleSize/2)*2*Math.PI)*paddleRadius)
 	}
 	
 	
@@ -125,6 +125,7 @@ if (Meteor.isClient) {
 	
 	
 	function updateSelfPos(pos) {
+		console.log("self pos: ",pos)
 		upsertPaddle("self_paddle",pos)
 	}
 	
@@ -170,7 +171,7 @@ if (Meteor.isClient) {
 		"mousemove svg, tap svg" : function(e,tmp) {
 			var x = e.offsetX-courtX/2
 			var y = e.offsetY-courtY/2
-			var pos = Math.atan2(y,x)/-2/Math.PI+0.25 //This seems bad :(
+			var pos = Math.atan2(y,x)/-2/Math.PI //This seems bad :(
 
 			Stream.emit("updatePaddlePos",pos)
 			updateSelfPos(pos)
@@ -251,8 +252,8 @@ if (Meteor.isServer) {
 			entry.pos.y=entry.pos.y+entry.vel.y*dt
 			
 			
-			if (Math.pow(entry.pos.x,2)+Math.pow(entry.pos.y,2) >= ball_reflect_position) {
-				var pos = Math.atan2(entry.pos.y,entry.pos.x)/-2/Math.PI+0.25 //Oh no not again
+			if (Math.pow(entry.pos.x,2)+Math.pow(entry.pos.y,2) > ball_reflect_position) {
+				var pos = Math.atan2(entry.pos.y,entry.pos.x)/-2/Math.PI //Oh no not again
 				if (isPaddleAtPos(pos)) {
 					entry.vel.x=-entry.vel.x
 					entry.vel.y=-entry.vel.y
