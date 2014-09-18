@@ -45,15 +45,17 @@ if (Meteor.isClient) {
 	
 	//Clientside physics sim
 	function physicsTick(dt) {
-		var balls = document.getElementsByTagName("circle")
-		if (!balls) {return}
+		var ball_list = document.getElementsByTagName("circle")
+		if (!ball_list) {return}
 	
-		for(var i = 0;i <balls.length;i++) {
-			var entry = balls[i]
+		for(var i = 0;i <ball_list.length;i++) {
+			var entry = ball_list[i]
 			
 			//if(entry.dataset.outofbounds) {continue}
+			
 			if(typeof entry.dataset.vel_x == "undefined" || typeof entry.dataset.vel_y == "undefined") {continue}
 			//Is it okay to store this stuff in the DOM?
+			//Edit: Its not on firefox, no .dataset for SVGElements :(
 			
 			var ballX = parseFloat(entry.getAttributeNS(null,"cx"),10)
 			var ballY = parseFloat(entry.getAttributeNS(null,"cy"),10)
@@ -125,7 +127,6 @@ if (Meteor.isClient) {
 	
 	
 	function updateSelfPos(pos) {
-		console.log("self pos: ",pos)
 		upsertPaddle("self_paddle",pos)
 	}
 	
@@ -185,8 +186,8 @@ if (Meteor.isClient) {
 
 if (Meteor.isServer) {
 	
-	var Balls = []
-	var Paddles = []
+	var Ball_array = []
+	var Paddle_array = []
 
 	//Debug method to add ball
 	Meteor.methods({
@@ -204,7 +205,7 @@ if (Meteor.isServer) {
 				x: 0,
 				y: 0
 			}
-			Balls.push(ball)
+			Ball_array.push(ball)
 		}
 	})
 	
@@ -219,7 +220,7 @@ if (Meteor.isServer) {
 	
 	Stream.on("updatePaddlePos",function(message) {
 		var updated = false;
-		Paddles.forEach(function(entry) {
+		Paddle_array.forEach(function(entry) {
 			if (entry.id == this.subscriptionId) {
 				updated = true
 				entry.pos = message
@@ -229,12 +230,12 @@ if (Meteor.isServer) {
 		
 		if(updated) {return}
 		
-		Paddles.push({id: this.subscriptionId, pos: message})
+		Paddle_array.push({id: this.subscriptionId, pos: message})
 		
 	})
 	
 	function isPaddleAtPos(pos) {
-		return Paddles.filter(function(entry) {
+		return Paddle_array.filter(function(entry) {
 			return (Math.abs(entry.pos-pos)<paddleSize/2)
 		}).length>0
 	}
@@ -247,7 +248,7 @@ if (Meteor.isServer) {
 		lastUpdate = Date.now()
 		
 		//Move ever ball, check for reflection
-		Balls.forEach(function(entry){
+		Ball_array.forEach(function(entry){
 			entry.pos.x=entry.pos.x+entry.vel.x*dt
 			entry.pos.y=entry.pos.y+entry.vel.y*dt
 			
@@ -265,13 +266,13 @@ if (Meteor.isServer) {
 			}
 		})
 		
-		//Remove the balls we scheduled to remove in the foreach
-		Balls = Balls.filter(function(entry){return (!(
+		//Remove the Ball_array we scheduled to remove in the foreach
+		Ball_array = Ball_array.filter(function(entry){return (!(
 			entry.scheduledForRemove === true 
 		))}) 
 		
-		//Remove old paddles
-		Paddles = Paddles.filter(function(entry){
+		//Remove old Paddle_array
+		Paddle_array = Paddle_array.filter(function(entry){
 			if (entry.lastUpdate + 10000 < Date.now()) {
 					Stream.emit("removePaddle",entry.id)
 					return false
