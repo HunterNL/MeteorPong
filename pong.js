@@ -14,7 +14,7 @@ var paddleSize = 0.05
 var ball_reflect_position = Math.pow(paddleRadius-ballRadius-paddleThickness/2,2)
 var ball_remove_postition = Math.pow(courtX/2+ballRadius*2,2)+Math.pow(courtY/2+ballRadius*2,2) 
 
-
+//TODO: Figure out how js scope work do I can do this nicer
 var util = {
 	clamp : function(a,min,max) {
 		return Math.min(Math.max(a,min),max)
@@ -34,6 +34,30 @@ var util = {
 			return util.clamp(source-step,target,source)
 		}
 		return source //target==source at this point
+	},
+	
+	posToCoords : function(pos,radius) {
+		var pos = {
+			x : Math.cos(pos*2*Math.PI),
+			y : -Math.sin(pos*2*Math.PI)
+		}
+		
+		if (typeof radius != "undefined") {
+			pos.x *= radius
+			pos.y *= radius
+		}
+	
+		return pos
+	},
+	
+	
+	coordsToPos : function(x,y) {
+		if (typeof x.x != "undefined" && typeof x.y != "undefined") {
+			y = x.y
+			x = x.x
+		}
+		return Math.atan2(y,x)/-2/Math.PI 
+	
 	}
 }
 
@@ -83,11 +107,14 @@ if (Meteor.isClient) {
 	requestAnimationFrame(animFunc)
 	
 	function setPaddlePos(paddle,pos) {
-		paddle.setAttributeNS(null,"x1",Math.cos((pos-paddleSize/2)*2*Math.PI)*paddleRadius)
-		paddle.setAttributeNS(null,"y1",-Math.sin((pos-paddleSize/2)*2*Math.PI)*paddleRadius)
+		var minpos = util.posToCoords(pos-paddleSize/2,paddleRadius)
+		var pluspos = util.posToCoords(pos+paddleSize/2,paddleRadius)
+		
+		paddle.setAttributeNS(null,"x1",minpos.x)
+		paddle.setAttributeNS(null,"y1",minpos.y)
 			
-		paddle.setAttributeNS(null,"x2",Math.cos((pos+paddleSize/2)*2*Math.PI)*paddleRadius)
-		paddle.setAttributeNS(null,"y2",-Math.sin((pos+paddleSize/2)*2*Math.PI)*paddleRadius)
+		paddle.setAttributeNS(null,"x2",pluspos.x)
+		paddle.setAttributeNS(null,"y2",pluspos.y)
 	}
 	
 	
@@ -172,7 +199,7 @@ if (Meteor.isClient) {
 		"mousemove svg, tap svg" : function(e,tmp) {
 			var x = e.offsetX-courtX/2
 			var y = e.offsetY-courtY/2
-			var pos = Math.atan2(y,x)/-2/Math.PI //This seems bad :(
+			var pos = util.coordsToPos(x,y) 
 
 			Stream.emit("updatePaddlePos",pos)
 			updateSelfPos(pos)
@@ -192,13 +219,10 @@ if (Meteor.isServer) {
 	//Debug method to add ball
 	Meteor.methods({
 		"addball" : function() {
-			var pos = Math.random(-Math.PI/2,Math.PI/2)
+			var pos = Math.random(-.5,.5)
 			var ball = {
 				id: Random.id(),
-				vel : {
-					x : Math.sin(pos) * ballSpeed,
-					y : Math.cos(pos) * ballSpeed
-				}
+				vel : util.posToCoords(pos,ballSpeed)
 			}
 			Stream.emit("newBall",ball)
 			ball.pos={
@@ -254,7 +278,7 @@ if (Meteor.isServer) {
 			
 			
 			if (Math.pow(entry.pos.x,2)+Math.pow(entry.pos.y,2) > ball_reflect_position) {
-				var pos = Math.atan2(entry.pos.y,entry.pos.x)/-2/Math.PI //Oh no not again
+				var pos = util.coordsToPos(entry.pos)
 				if (isPaddleAtPos(pos)) {
 					entry.vel.x=-entry.vel.x
 					entry.vel.y=-entry.vel.y
@@ -266,7 +290,7 @@ if (Meteor.isServer) {
 			}
 		}
 		
-		//Remove the Ball_array we scheduled to remove in the foreach
+		//Remove the Ball_array we scheduled to remove in the loop
 		Ball_array = Ball_array.filter(function(entry){return (!(
 			entry.scheduledForRemove === true 
 		))}) 
