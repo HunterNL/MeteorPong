@@ -219,16 +219,14 @@ if (Meteor.isServer) {
 	},false)
 	
 	Stream.on("updatePaddlePos",function(message) {
-		var updated = false;
-		Paddle_array.forEach(function(entry) {
+		for(var i = 0;i <Paddle_array.length;i++) {
+			var entry = Paddle_array[i]
 			if (entry.id == this.subscriptionId) {
-				updated = true
 				entry.pos = message
 				entry.lastUpdate = Date.now()
+				return
 			}
-		},this)
-		
-		if(updated) {return}
+		}
 		
 		Paddle_array.push({id: this.subscriptionId, pos: message})
 		
@@ -248,7 +246,9 @@ if (Meteor.isServer) {
 		lastUpdate = Date.now()
 		
 		//Move ever ball, check for reflection
-		Ball_array.forEach(function(entry){
+		
+		for(var i = 0;i <Ball_array.length;i++) {
+			var entry = Ball_array[i]
 			entry.pos.x=entry.pos.x+entry.vel.x*dt
 			entry.pos.y=entry.pos.y+entry.vel.y*dt
 			
@@ -264,7 +264,7 @@ if (Meteor.isServer) {
 					Stream.emit("updateBall",{id:entry.id, outOfBounds : true})
 				}
 			}
-		})
+		}
 		
 		//Remove the Ball_array we scheduled to remove in the foreach
 		Ball_array = Ball_array.filter(function(entry){return (!(
