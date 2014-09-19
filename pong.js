@@ -14,56 +14,6 @@ var paddleSize = 0.05
 var ball_reflect_position = Math.pow(paddleRadius-ballRadius-paddleThickness/2,2)
 var ball_remove_postition = Math.pow(courtX/2+ballRadius*2,2)+Math.pow(courtY/2+ballRadius*2,2) 
 
-//TODO: Figure out how js scope work do I can do this nicer
-var util = {
-	clamp : function(a,min,max) {
-		return Math.min(Math.max(a,min),max)
-	},
-	
-	
-	//Todo make me "modulus aware"
-	approach : function(source,target,step,modulus) {
-		//if (%)
-		step = Math.abs(step)
-		
-		if (source<target) {
-			return util.clamp(source+step,source,target)
-		} 
-		
-		if (source>target) {
-			return util.clamp(source-step,target,source)
-		}
-		return source //target==source at this point
-	},
-	
-	posToCoords : function(pos,radius) {
-		var pos = {
-			x : Math.cos(pos*2*Math.PI),
-			y : -Math.sin(pos*2*Math.PI)
-		}
-		
-		if (typeof radius != "undefined") {
-			pos.x *= radius
-			pos.y *= radius
-		}
-	
-		return pos
-	},
-	
-	
-	coordsToPos : function(x,y) {
-		if (typeof x.x != "undefined" && typeof x.y != "undefined") {
-			y = x.y
-			x = x.x
-		}
-		return Math.atan2(y,x)/-2/Math.PI 
-	
-	}
-}
-
-
-
-
 if (Meteor.isClient) {
 	
 	
