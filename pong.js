@@ -14,7 +14,6 @@ Config = {
 Config.ball_reflect_position = Math.pow(Config.paddleRadius-Config.ballRadius-Config.paddleThickness/2,2),
 Config.ball_remove_postition = Math.pow(Config.courtX/2+Config.ballRadius*2,2)+Math.pow(Config.courtY/2+Config.ballRadius*2,2)
 
-console.log(Config)
 /*
 var courtX = 800
 var courtY = 800

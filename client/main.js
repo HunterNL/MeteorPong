@@ -1,27 +1,30 @@
+Ball_array = []
+
 //Clientside physics sim
 function physicsTick(dt) {
-	var ball_list = document.getElementsByTagName("circle")
-	if (!ball_list) {return}
-
-	for(var i = 0;i <ball_list.length;i++) {
-		var entry = ball_list[i]
+	for(var i=0;i<Ball_array.length;i++) {
+		var entry = Ball_array[i]
+		var x = parseFloat(entry.domElement.getAttributeNS(null,"cx"),10)
+		var y = parseFloat(entry.domElement.getAttributeNS(null,"cy"),10)
 		
-		//if(entry.dataset.outofbounds) {continue}
 		
-		if(typeof entry.dataset.vel_x == "undefined" || typeof entry.dataset.vel_y == "undefined") {continue}
-		//Is it okay to store this stuff in the DOM?
-		//Edit: Its not on firefox, no .dataset for SVGElements :(
+		if(Math.pow(x,2)+Math.pow(y,2)>Config.ball_remove_postition) {
+			entry.scheduledForRemove = true //Figure out how to do this nicer
+			entry.domElement.parentNode.removeChild(entry.domElement)
+			//delete entry.domElement
+			continue
+		}	
 		
-		var ballX = parseFloat(entry.getAttributeNS(null,"cx"),10)
-		var ballY = parseFloat(entry.getAttributeNS(null,"cy"),10)
+		entry.domElement.setAttributeNS(null,"cx",x+entry.vel.x*dt)
+		entry.domElement.setAttributeNS(null,"cy",y+entry.vel.y*dt)
 		
-		entry.setAttributeNS(null,"cx",ballX+parseFloat(entry.dataset.vel_x,10)*dt)
-		entry.setAttributeNS(null,"cy",ballY+parseFloat(entry.dataset.vel_y,10)*dt)
-		
-		if(Math.pow(ballX,2)+Math.pow(ballY,2)>Config.ball_remove_postition) {
-			entry.parentNode.removeChild(entry)
-		}
 	}
+	
+	
+	//As said above, do this nicer, or is this nice enough?
+	Ball_array = Ball_array.filter(function(entry) {
+		return (!entry.scheduledForRemove)
+	})
 }
 
 
@@ -75,13 +78,54 @@ function insertBall(id,vel) {
 	ball.setAttributeNS(null,"cy",0)
 	ball.setAttributeNS(null,"r",Config.ballRadius)
 	
-	ball.dataset.vel_x = vel.x
-	ball.dataset.vel_y = vel.y
+	ball.id = id //We'll use the Ball_array's id field but lets do this for good measure
 	
-	ball.id = id
+	Ball_array.push({
+		domElement : ball,
+		id : id,
+		vel : vel,
+	})
+	
+	
 	document.getElementsByTagName("svg")[0].appendChild(ball)
 }
 
+function getBallById(id) {
+	for(var i=0;i <Ball_array.length;i++) {
+		var entry = Ball_array[i]
+		if(entry.id==id) {
+			return entry
+		}
+	}
+	console.error("Invalid ID specified for getBallById")
+}
+
+//Update ball position
+function updateBallPos(id,pos) {
+	var ball = getBallById(id)
+	ball.domElement.setAttributeNS(null,"cx",pos.x)
+	ball.domElement.setAttributeNS(null,"cy",pos.y)
+}
+
+//Update ball velocity
+function updateBallVel(id,vel) {
+	var ball = getBallById(id)
+	ball.vel = vel
+}
+
+//Set ball out of bounds true/false
+//Note server removes ball when oob serverside
+function setBallOoB(id,oob) {
+	var ball = getBallById(id)
+	ball.oob = oob
+	if(oob) {
+		ball.domElement.setAttributeNS(null,"fill","red")
+	} else {
+		//This shouldn't really happen
+		//ball.domElement.setAttributeNS(null,"fill","white")
+		//system.exit(-1)
+	}
+}
 
 
 function updateSelfPos(pos) {
@@ -109,18 +153,16 @@ Stream.on("updateBall",function(message) {
 	var ball = document.getElementById(message.id)
 	if(ball) {
 		if(message.pos) {
-			ball.setAttributeNS(null,"cx",message.pos.x)
-			ball.setAttributeNS(null,"cy",message.pos.y)
+			updateBallPos(message.id,message.pos)
 		}
 		
 		if(message.vel) {
-			ball.dataset.vel_x=message.vel.x
-			ball.dataset.vel_y=message.vel.y
+			updateBallVel(message.id,message.vel)
 		}
 		
 		if(message.outOfBounds) {
-			ball.dataset.outofbounds = true
-			ball.setAttributeNS(null,"fill","red")
+			setBallOoB(message.id,true)
+			
 		}
 	}
 
