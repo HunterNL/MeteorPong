@@ -45,7 +45,7 @@ Stream.on("updatePaddlePos",function(message) {
 //Gets all paddles that cover the specified position
 function getPaddlesAtPos(pos) {
 	return Paddle_array.filter(function(entry) {
-		return (Math.abs(entry.pos-pos)<Config.paddleSize/2)
+		return (Math.abs(util.posDifference(entry.pos,pos))<Config.paddleSize/2)
 	})
 }
 
@@ -54,7 +54,7 @@ function calcBounceDirection(paddle,ball) {
 	//(from the perspective of a paddle, towards to center)
 	var hitpos = util.posDifference(paddle.pos,util.coordsToPos(ball.pos))/Config.paddleSize*Math.PI
 	var vel_length = util.pyth(ball.vel.x,ball.vel.y)
-	return util.posToCoords(util.coordsToPos(ball.vel)+hitpos+Math.PI,vel_length)
+	return util.posToCoords(paddle.pos+hitpos+Math.PI,vel_length)
 }
 
 

@@ -20,6 +20,9 @@ util = {
 	},
 	
 	posToCoords : function(pos,radius) {
+		if(typeof pos == "undefined") {
+			throw "Invalid argument for pos"
+		}
 		var pos = {
 			x : Math.cos(pos),
 			y : Math.sin(pos)
