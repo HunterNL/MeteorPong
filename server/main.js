@@ -42,10 +42,19 @@ Stream.on("updatePaddlePos",function(message) {
 	
 })
 
-function isPaddleAtPos(pos) {
+//Gets all paddles that cover the specified position
+function getPaddlesAtPos(pos) {
 	return Paddle_array.filter(function(entry) {
 		return (Math.abs(entry.pos-pos)<Config.paddleSize/2)
-	}).length>0
+	})
+}
+
+function calcBounceDirection(paddle,ball) {
+	//Where on the paddle did the ball hit, -PI is far left, PI is far right
+	//(from the perspective of a paddle, towards to center)
+	var hitpos = util.posDifference(paddle.pos,util.coordsToPos(ball.pos))/Config.paddleSize*Math.PI
+	var vel_length = util.pyth(ball.vel.x,ball.vel.y)
+	return util.posToCoords(util.coordsToPos(ball.vel)+hitpos+Math.PI,vel_length)
 }
 
 
@@ -55,7 +64,7 @@ Meteor.setInterval(function() {
 	var dt = Date.now() - lastUpdate
 	lastUpdate = Date.now()
 	
-	//Move ever ball, check for reflection
+	//Move every ball, check for reflection
 	
 	for(var i = 0;i <Ball_array.length;i++) {
 		var entry = Ball_array[i]
@@ -64,9 +73,12 @@ Meteor.setInterval(function() {
 		
 		if (Math.pow(entry.pos.x,2)+Math.pow(entry.pos.y,2) > Config.ball_reflect_position) {
 			var pos = util.coordsToPos(entry.pos)
-			if (isPaddleAtPos(pos)) {
-				entry.vel.x=-entry.vel.x
-				entry.vel.y=-entry.vel.y
+			var paddles = getPaddlesAtPos(pos)
+			if (paddles.length>0) {
+				var vel = calcBounceDirection(paddles[0],entry)
+				//entry.vel.x=-entry.vel.x
+				//entry.vel.y=-entry.vel.y
+				entry.vel = vel
 				Stream.emit("updateBall",entry)
 			} else {
 				entry.scheduledForRemove = true

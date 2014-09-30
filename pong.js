@@ -9,7 +9,7 @@ Config = {
 	
 	paddleThickness : 3,
 	paddleRadius : 200,
-	paddleSize : 0.05
+	paddleSize : 0.2 //In radians
 }
 Config.ball_reflect_position = Math.pow(Config.paddleRadius-Config.ballRadius-Config.paddleThickness/2,2),
 Config.ball_remove_postition = Math.pow(Config.courtX/2+Config.ballRadius*2,2)+Math.pow(Config.courtY/2+Config.ballRadius*2,2)

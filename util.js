@@ -21,8 +21,8 @@ util = {
 	
 	posToCoords : function(pos,radius) {
 		var pos = {
-			x : Math.cos(pos*2*Math.PI),
-			y : -Math.sin(pos*2*Math.PI)
+			x : Math.cos(pos),
+			y : Math.sin(pos)
 		}
 		
 		if (typeof radius != "undefined") {
@@ -39,7 +39,24 @@ util = {
 			y = x.y
 			x = x.x
 		}
-		return Math.atan2(y,x)/-2/Math.PI 
+		return Math.atan2(y,x)//-2/Math.PI 
 	
+	},
+	
+	//Not 100% about the math, might be the wrong way around
+	//Also can probably be done nicer with some abs
+	posDifference : function(a,b) {
+		var diff = a-b
+		if(diff < -Math.PI) {
+			return -2*Math.PI + diff
+		}
+		if(diff > Math.PI) {
+			return 2*Math.PI - diff
+		}
+		return diff
+	},
+	//Phytagoras
+	pyth : function(a,b) {
+		return Math.sqrt(Math.pow(a,2)+Math.pow(b,2))
 	}
 }
