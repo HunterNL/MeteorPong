@@ -2,7 +2,10 @@ Ball.ball_array = []
 Paddle.paddle_array = []
 
 //---------------------------------------------------------------------------//
+//Ball Object
 
+//Id,velocity,position
+//Id can be anything, vel and pos are objects with x and y properties eg {x:0,y:0}  
 function Ball(id,vel,pos) {
 	this._id = id
 	this._domElement = document.createElementNS("http://www.w3.org/2000/svg", "circle")
@@ -10,9 +13,6 @@ function Ball(id,vel,pos) {
 	
 	this.pos = pos || {x:Config.ball_origin.x,y:Config.ball_origin.y} //Clone object, don't have everything refer to the same object
 	this.vel = vel || {x:0,y:0}
-		
-	//domElement.setAttributeNS(null,"cx",0)
-	//domElement.setAttributeNS(null,"cy",0)
 	
 	this._domElement.setAttributeNS(null,"fill","white")
 	this._domElement.setAttributeNS(null,"r",Config.ballRadius)
@@ -22,10 +22,13 @@ function Ball(id,vel,pos) {
 	Ball.addBall(this)
 }
 
+//Adds a ball the main ball array
 Ball.addBall = function(ball) {
 	Ball.ball_array.push(ball)
 }
 
+
+//Loops over every ball and physticks it
 Ball.physTickAll = function(dt) {
 	for(var i=0;i<Ball.ball_array.length;i++) {
 		var ball = Ball.ball_array[i]
@@ -33,12 +36,14 @@ Ball.physTickAll = function(dt) {
 	}
 }
 
+//Same as above, but renders
 Ball.renderAll = function () {
 	for(var i=0;i<Ball.ball_array.length;i++) {
 		Ball.ball_array[i].render()
 	}
 }
 
+//Loops over every ball and removes balls outside court
 Ball.filterInvisible = function() {
 	Ball.ball_array = Ball.ball_array.filter(function(ball){return Math.pow(ball.pos.x,2)+Math.pow(ball.pos.y,2)<Config.ball_remove_postition})
 }
@@ -76,21 +81,26 @@ Ball.prototype.getOoB = function() {
 	return this._outOfBounds
 }
 
+//Sets the ball as having left the playable area
 Ball.prototype.leaveCourt = function() {
 	//Sure sounds like CK2
-	outOfBounds = true
+	this._outOfBounds = true
 	this._domElement.setAttributeNS(null,"fill","red")
 }
 
 //---------------------------------------------------------------------------//
+//Paddle object
+//Paddles are created and destroyed 
 
+//Id, position
+//Id can be anything, pos is the position in >radians<, 0 being right, -0.5PI being up, 0.5PI being right 
 function Paddle(id,pos) {
 	this._id = id
 	this._domElement = document.createElementNS("http://www.w3.org/2000/svg", "line")
 	
 	this.pos = pos || 0
 	
-		
+	//TODO: Change to static style config?
 	this._domElement.setAttributeNS(null,"strike-width",Config.paddleThickness)
 	this._domElement.setAttributeNS(null,"stroke","white")
 	
@@ -99,6 +109,7 @@ function Paddle(id,pos) {
 	
 	Paddle.addPaddle(this)
 }
+
 
 Paddle.renderAll = function() {
 	for(var i=0;i<Paddle.paddle_array.length;i++) {
@@ -139,10 +150,10 @@ Paddle.prototype.getDomElement = function() {
 	return this._domElement
 }
 
+
+//Removes given ID from the main array
 Paddle.remove = function(id) {
-	console.log("revoving paddle id ",id)
 	var index = Paddle.paddle_array.indexOf(Paddle.find(id))
-	console.log(index)
 	if (index >= 0) {
 		Paddle.paddle_array.splice(index,1)
 	}
@@ -151,52 +162,18 @@ Paddle.remove = function(id) {
 
 //---------------------------------------------------------------------------//
 
+
 //Clientside physics sim
 function physicsTick(dt) {
-	/*
-	for(var i=0;i<Ball_array.length;i++) {
-		var entry = Ball_array[i]
-		var x = parseFloat(entry.domElement.getAttributeNS(null,"cx"),10)
-		var y = parseFloat(entry.domElement.getAttributeNS(null,"cy"),10)
-		
-		
-		if(Math.pow(x,2)+Math.pow(y,2)>Config.ball_remove_postition) {
-			entry.scheduledForRemove = true //Figure out how to do this nicer
-			entry.domElement.parentNode.removeChild(entry.domElement)
-			continue
-		}	
-		
-		entry.domElement.setAttributeNS(null,"cx",x+entry.vel.x*dt)
-		entry.domElement.setAttributeNS(null,"cy",y+entry.vel.y*dt)
-		
-	}
-	
-	
-	//As said above, do this nicer, or is this nice enough?
-	Ball_array = Ball_array.filter(function(entry) {
-		return (!entry.scheduledForRemove)
-	})
-	
-	//console.log(Math.floor(1000/dt))
-	*/
 	Ball.physTickAll(dt)
 	Ball.filterInvisible()
 	Ball.renderAll()
 	Paddle.renderAll()
 }
-/*
-function renderTick(dt) {
-	for(var i=0;i<Ball_array.length;i++) {
-		var entry = Ball_array[i]
-		entry.domElement.setAttributeNS(null,"cx",entry.pos.x)
-		entry.domElement.setAttributeNS(null,"cy",entry.pos.y)
-	}
-}
-*/
-
 
 var lastStamp = null
 //Wrapper to get physTick its deltatime
+//TODO: Seperate physics and rendering
 function animFunc(timestamp) {
 	if (lastStamp!=null) {
 		physicsTick(timestamp-lastStamp)
@@ -206,42 +183,10 @@ function animFunc(timestamp) {
 	requestAnimationFrame(animFunc)
 }
 requestAnimationFrame(animFunc)
-/*
-function setPaddlePos(paddle,pos) {
-	var minpos = util.posToCoords(pos-Config.paddleSize/2,Config.paddleRadius)
-	var pluspos = util.posToCoords(pos+Config.paddleSize/2,Config.paddleRadius)
-	
-	paddle.setAttributeNS(null,"x1",minpos.x)
-	paddle.setAttributeNS(null,"y1",minpos.y)
-		
-	paddle.setAttributeNS(null,"x2",pluspos.x)
-	paddle.setAttributeNS(null,"y2",pluspos.y)
-}
-*/
+
 
 //Update or insert a paddle
 function upsertPaddle(id,pos) {
-	/*
-	var paddle = findIdInArray(id)
-	if (!paddle) {
-		paddle = document.createElementNS("http://www.w3.org/2000/svg", "line")
-		
-		paddle.setAttributeNS(null,"strike-width",Config.paddleThickness)
-		paddle.setAttributeNS(null,"stroke","white")
-		
-		paddle.id = id
-		Paddle_array.push({
-			domElement : paddle,
-			id : id,
-			pos : pos,
-			lastUpdate : Date.now()
-		})
-		
-		document.getElementsByTagName("svg")[0].appendChild(paddle)
-	}
-	
-	setPaddlePos(paddle,pos)
-	*/
 	var paddle = Paddle.find(id)
 	if(!paddle) {
 		paddle = new Paddle(id,pos)
@@ -250,28 +195,6 @@ function upsertPaddle(id,pos) {
 	}
 	
 }
-/*
-function insertBall(id,vel) {
-	var ball = document.createElementNS("http://www.w3.org/2000/svg", "circle")
-		
-	//paddle.setAttributeNS(null,"strike-width",3)
-	ball.setAttributeNS(null,"fill","white")
-	ball.setAttributeNS(null,"cx",0)
-	ball.setAttributeNS(null,"cy",0)
-	ball.setAttributeNS(null,"r",Config.ballRadius)
-	
-	ball.id = id //We'll use the Ball_array's id field but lets do this for good measure
-	
-	Ball_array.push({
-		domElement : ball,
-		id : id,
-		vel : vel,
-	})
-	
-	
-	document.getElementsByTagName("svg")[0].appendChild(ball)
-}
-*/
 
 //Find element with matching .id property in array, returns false if not found
 function findIdInArray(r,id) {
@@ -286,54 +209,21 @@ function findIdInArray(r,id) {
 	}
 	return false
 }
-/*
-//Update ball position
-function updateBallPos(id,pos) {
-	var ball = findIdInArray(Ball_array,id)
-	ball.domElement.setAttributeNS(null,"cx",pos.x)
-	ball.domElement.setAttributeNS(null,"cy",pos.y)
-}
-*/
-/*
-//Update ball velocity
-function updateBallVel(id,vel) {
-	var ball = findIdInArray(Ball_array,id)
-	ball.vel = vel
-}
-*/
-//Set ball out of bounds true/false
-//Note server removes ball when oob serverside
-/*
-function setBallOoB(id,oob) {
-	var ball = findIdInArray(Ball_array,id)
-	ball.oob = oob
-	if(oob) {
-		ball.domElement.setAttributeNS(null,"fill","red")
-	} else {
-		//This shouldn't really happen
-		//ball.domElement.setAttributeNS(null,"fill","white")
-		//system.exit(-1)
-	}
-}
-*/
 
+//TODO: Explain somewhere why this just works considering networking
 function updateSelfPos(pos) {
 	upsertPaddle("self_paddle",pos)
 }
 
+//---------------------------------------------------------------------------//
+//Message handling
+//Note that unlike paddles, the server doesn't remove balls, only sets them to be out of the court
 
 Stream.on("updatePaddlePos",function(message) {
 	upsertPaddle(this.subscriptionId,message)
 })
 
 Stream.on("removePaddle",function(message) {
-	/*
-	var paddle = document.getElementById(message)
-	if (paddle) {
-		paddle.parentNode.removeChild(paddle)
-	}
-	*/
-	
 	Paddle.remove(message)
 })
 
@@ -344,14 +234,13 @@ Stream.on("newBall",function(message) {
 Stream.on("updateBall",function(message) {
 	console.log("received ball update ",message)
 	var ball = Ball.find(message.id)
+	
 	if(ball) {
 		if(message.pos) {
-			//updateBallPos(message.id,message.pos)
 			ball.pos = message.pos
 		}
 		
 		if(message.vel) {
-			//updateBallVel(message.id,message.vel)
 			ball.vel = message.vel
 		}
 		
@@ -361,6 +250,9 @@ Stream.on("updateBall",function(message) {
 	}
 
 })
+
+//---------------------------------------------------------------------------//
+//Template events
 
 Template.court.events({
 	"mousemove svg, tap svg" : function(e,tmp) {
