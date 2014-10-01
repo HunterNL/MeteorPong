@@ -6,6 +6,7 @@ Config = {
 	
 	ballSpeed : 0.2,
 	ballRadius : 10,
+	ball_origin: {x:0,y:0},
 	
 	paddleThickness : 3,
 	paddleRadius : 200,
