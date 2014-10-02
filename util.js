@@ -61,5 +61,19 @@ util = {
 	//Phytagoras
 	pyth : function(a,b) {
 		return Math.sqrt(Math.pow(a,2)+Math.pow(b,2))
+	},
+	
+	//Workaround for setting this on callbacks
+	customTimeout : function(func,delay,this_obj) {
+		function helper() {
+			func.call(this_obj)
+		}
+		
+		if(Meteor) {
+			Meteor.setTimeout(helper,delay)
+		} else {
+			window.setTimeout(helper,delay)
+		}
+	
 	}
 }
