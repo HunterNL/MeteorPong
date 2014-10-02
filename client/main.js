@@ -51,7 +51,7 @@ function Court(options) {
 	this.lastPhysTick = Date.now()
 	requestAnimationFrame(this.renderrAFWrapper.bind(court))
 	
-	util.customTimeout(this.physTickWrapper,16,this)
+	//util.customTimeout(this.physTickWrapper,16,this)
 }
 
 Court.prototype.addBall = function(ball) {
@@ -133,6 +133,8 @@ Court.prototype.render = function() {
 
 //Quick wrapper to keep rAF in one place
 Court.prototype.renderrAFWrapper = function(func) {
+	this.physTick(Date.now()-this.lastPhysTick)
+	this.lastPhysTick = Date.now()
 	this.render()
 	requestAnimationFrame(this.renderrAFWrapper.bind(this))
 }
